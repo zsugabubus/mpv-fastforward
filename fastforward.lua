@@ -55,10 +55,6 @@ local function resume()
     if timer ~= nil then timer:resume() end
 end
 
-local function keep_speed()
-    pause()
-end
-
 local function on_pause_change(_, pause)
     if pause then
         pause()
@@ -136,8 +132,6 @@ local function speed_up()
         mp.set_property_bool("pause", false)
     end
 end
-
-mp.register_script_message("keepspeed", slow_down)
 
 mp.add_key_binding(")", "speedup", speed_up, {repeatable=true})
 
