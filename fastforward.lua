@@ -77,7 +77,7 @@ local function on_speed_change(_, speed)
         mp.set_property_bool("pause", paused)
         mp.set_property_number("speed", 1)
 
-        mp.osd_message("▶▶ x1")
+        mp.osd_message("Speed: 1")
     elseif speed > opts.max_speed then
         -- clamp speed
         mp.set_property_number("speed", opts.max_speed)
