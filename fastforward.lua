@@ -71,7 +71,7 @@ local function speed_changed(_, speed)
 
   mp.set_property_number("speed", speed)
   if speed == 1 then
-    mp.osd_message("Speed: 1")
+    mp.osd_message("")
   else
     mp.osd_message(("▶▶ x%.2f"):format(speed), 10)
   end
