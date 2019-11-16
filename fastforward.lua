@@ -45,92 +45,78 @@ options.read_options(opts)
 local timer = nil
 local was_paused
 
-local function pause()
-  msg.debug("pause fast-forwarding")
-  if timer ~= nil then timer:stop() end
-end
-
-local function resume()
-  msg.debug("resume fast-forwarding")
-  if timer ~= nil then timer:resume() end
-end
-
 local function pause_changed(_, paused)
   if paused then
-    pause()
+    timer:stop()
   else
-    resume()
+    timer:resume()
   end
 end
 
 local function speed_changed(_, speed)
   if speed <= 1.001 then
-    msg.debug("stop fast-forwarding")
+    mp.unobserve_property(pause_changed)
+    mp.unobserve_property(speed_changed)
 
     timer:kill()
     timer = nil
 
-    mp.unobserve_property(pause_changed)
-    mp.unobserve_property(speed_changed)
     mp.remove_key_binding("slowdown")
 
     mp.set_property_bool("pause", was_paused)
-    mp.set_property_number("speed", 1)
-
-    mp.osd_message("Speed: 1")
+    speed = 1
   elseif speed > opts.max_speed then
-    -- clamp speed
-    mp.set_property_number("speed", opts.max_speed)
-    mp.osd_message("▶▶ x"..opts.max_speed)
+    speed = opts.max_speed
+  end
+
+  mp.set_property_number("speed", speed)
+  if speed == 1 then
+    mp.osd_message("Speed: 1")
   else
-    mp.osd_message("▶▶ x"..string.format("%.2f", speed), 10)
+    mp.osd_message(("▶▶ x%.2f"):format(speed), 10)
   end
 end
 
 local function change_speed(amount)
-  local speed = mp.get_property_number("speed")
+  local new_speed = mp.get_property_number("speed")
   local op = amount:sub(1, 1)
   local val = tonumber(amount:sub(2))
 
-  if     op == "+" then speed = speed + val
-  elseif op == "-" then speed = speed - val
-  elseif op == "*" then speed = speed * val
-  elseif op == "/" then speed = speed / val
-  else msg.warn("unable to parse value: `"..amount.."'")
+  if     op == "+" then new_speed = new_speed + val
+  elseif op == "-" then new_speed = new_speed - val
+  elseif op == "*" then new_speed = new_speed * val
+  elseif op == "/" then new_speed = new_speed / val
+  else new_speed = tonumber(amount)
   end
 
-  mp.set_property_number("speed", speed)
+  mp.set_property_number("speed", new_speed)
 end
 
 local function slow_down()
   change_speed(opts.speed_decrease)
 end
 
-local function begin_slow_down()
-  msg.trace("begin_slow_down()")
+local function auto_slow_down()
   slow_down()
   timer = mp.add_periodic_timer(opts.decay_interval, slow_down)
 end
 
 local function speed_up()
-  local speed = mp.get_property_number("speed")
-
-  if opts.decay_delay > 0 and opts.decay_interval > 0 then
-    if timer ~= nil then timer:kill() end
-    timer = mp.add_timeout(opts.decay_delay, begin_slow_down)
-  end
-
-  change_speed(opts.speed_increase)
-
-  if speed == 1 then
-    msg.debug("start fast-forwarding")
-    was_paused = mp.get_property_bool("pause")
+  local is_active = mp.get_property_number("speed") ~= 1
+  if not is_active then
     mp.observe_property("pause", "bool", pause_changed)
     mp.observe_property("speed", "number", speed_changed)
     mp.add_key_binding("(", "slowdown", slow_down, {repeatable=true})
-
+    was_paused = mp.get_property_bool("pause")
     mp.set_property_bool("pause", false)
   end
+
+  if opts.decay_delay > 0 and opts.decay_interval > 0 then
+    if timer ~= nil then timer:kill() end
+    timer = mp.add_timeout(opts.decay_delay, auto_slow_down)
+  end
+
+  change_speed(opts.speed_increase)
 end
 
 mp.add_key_binding(")", "speedup", speed_up, {repeatable=true})
