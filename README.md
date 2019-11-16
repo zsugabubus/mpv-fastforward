@@ -6,4 +6,4 @@ A fast-forward plugin for MPV. I got the idea from [fastforward.lua][link].
 ## License
 Licensed under the [WTFPL](LICENSE).
 
-[link]: https://github.com/jgreco/mpv-scripts/blob/master/fastfoward.lua
+[link]: https://github.com/jgreco/mpv-scripts/blob/master/fastforward.lua
