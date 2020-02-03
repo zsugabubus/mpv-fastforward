@@ -53,7 +53,8 @@ local function pause_changed(_, paused)
   end
 end
 
-local function speed_changed(_, speed)
+local function speed_changed()
+  local speed = mp.get_property_number("speed")
   if speed <= 1.001 then
     mp.unobserve_property(pause_changed)
     mp.unobserve_property(speed_changed)
@@ -105,7 +106,7 @@ local function speed_up()
   local is_active = mp.get_property_number("speed") ~= 1
   if not is_active then
     mp.observe_property("pause", "bool", pause_changed)
-    mp.observe_property("speed", "number", speed_changed)
+    mp.observe_property("speed", nil, speed_changed)
     mp.add_key_binding("(", "slowdown", slow_down, {repeatable=true})
     was_paused = mp.get_property_bool("pause")
     mp.set_property_bool("pause", false)
