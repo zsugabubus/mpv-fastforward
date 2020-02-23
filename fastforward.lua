@@ -21,14 +21,13 @@ speed_decrease=/1.1
 ]]
 
 local options = require 'mp.options'
-local msg = require 'mp.msg'
 
 --[[
 This default config makes absolutely no sense, so use `script-opts/fastforward.conf` to change these values.
 You can also use expressions like [+-*/]{number}, e.g. /2, *0.5, +1, -0.3...
 ]]
 local opts = {
-speed_increase = "+0.2", --  <--  here...
+speed_increase = '+0.2', --  <--  here...
   -- Upper speed limit.
   max_speed = 8,
   -- Time to elapse until first slow down.
@@ -37,7 +36,7 @@ speed_increase = "+0.2", --  <--  here...
   -- it will be decreased by `speed_decrease` at every
   -- `decay_interval` seconds automatically.
   decay_interval = 0.5,
-  speed_decrease = "*0.9", -- <--    ...and here.
+  speed_decrease = '*0.9', -- <--    ...and here.
 }
 
 options.read_options(opts)
@@ -53,8 +52,7 @@ local function pause_changed(_, paused)
   end
 end
 
-local function speed_changed()
-  local speed = mp.get_property_number("speed")
+local function speed_changed(_, speed)
   if speed <= 1.001 then
     mp.unobserve_property(pause_changed)
     mp.unobserve_property(speed_changed)
@@ -62,35 +60,35 @@ local function speed_changed()
     timer:kill()
     timer = nil
 
-    mp.remove_key_binding("slowdown")
+    mp.remove_key_binding('slowdown')
 
-    mp.set_property_bool("pause", was_paused)
+    mp.set_property_bool('pause', was_paused)
     speed = 1
   elseif speed > opts.max_speed then
     speed = opts.max_speed
   end
 
-  mp.set_property_number("speed", speed)
+  mp.set_property_number('speed', speed)
   if speed == 1 then
-    mp.osd_message("")
+    mp.osd_message('')
   else
-    mp.osd_message(("▶▶ x%.2f"):format(speed), 10)
+    mp.osd_message(('▶▶ x%.2f'):format(speed), 10)
   end
 end
 
 local function change_speed(amount)
-  local new_speed = mp.get_property_number("speed")
+  local new_speed = mp.get_property_number('speed')
   local op = amount:sub(1, 1)
   local val = tonumber(amount:sub(2))
 
-  if     op == "+" then new_speed = new_speed + val
-  elseif op == "-" then new_speed = new_speed - val
-  elseif op == "*" then new_speed = new_speed * val
-  elseif op == "/" then new_speed = new_speed / val
+  if     op == '+' then new_speed = new_speed + val
+  elseif op == '-' then new_speed = new_speed - val
+  elseif op == '*' then new_speed = new_speed * val
+  elseif op == '/' then new_speed = new_speed / val
   else new_speed = tonumber(amount)
   end
 
-  mp.set_property_number("speed", new_speed)
+  mp.set_property_number('speed', new_speed)
 end
 
 local function slow_down()
@@ -103,22 +101,19 @@ local function auto_slow_down()
 end
 
 local function speed_up()
-  local is_active = mp.get_property_number("speed") ~= 1
-  if not is_active then
-    mp.observe_property("pause", "bool", pause_changed)
-    mp.observe_property("speed", nil, speed_changed)
-    mp.add_key_binding("(", "slowdown", slow_down, {repeatable=true})
-    was_paused = mp.get_property_bool("pause")
-    mp.set_property_bool("pause", false)
-  end
-
-  if opts.decay_delay > 0 and opts.decay_interval > 0 then
-    if timer ~= nil then timer:kill() end
-    timer = mp.add_timeout(opts.decay_delay, auto_slow_down)
-  end
-
   change_speed(opts.speed_increase)
+
+  if timer == nil then
+    mp.observe_property('pause', 'bool', pause_changed)
+    mp.observe_property('speed', 'number', speed_changed)
+    mp.add_key_binding('(', 'slowdown', slow_down, {repeatable=true})
+    was_paused = mp.get_property_bool('pause')
+    mp.set_property_bool('pause', false)
+  else
+    timer:kill()
+  end
+  timer = mp.add_timeout(opts.decay_delay, auto_slow_down)
 end
 
-mp.add_key_binding(")", "speedup", speed_up, {repeatable=true})
+mp.add_key_binding(')', 'speedup', speed_up, {repeatable=true})
 -- vi: ts=2 sw=2 et
